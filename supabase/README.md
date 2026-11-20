@@ -30,19 +30,48 @@ schema is stored as code.
   migration file here (`YYYYMMDDHHMMSS_description.sql`). The repo should always be able to
   rebuild the database.
 
-## Known gaps (to fix in the next migrations)
+## Migrations
 
-1. **Collection request status changes are not possible yet.** `collection_requests` has no
-   UPDATE policy and there is no transition function. Plan: a `security definer` function
-   `transition_request(request_id, new_status, remarks)` that checks the caller's role and the
-   allowed transition, updates the row and inserts into `request_status_history` in one transaction.
-2. **"Create collection requests" policy allows the listing owner to create a request on their
-   own listing** (first branch of the WITH CHECK), with no check that `partner_id` is a verified
-   partner. Per the SRS only verified partners should create requests - review and tighten.
-3. **`updated_at` is never refreshed** - there are no `updated_at` triggers on `profiles`,
-   `waste_listings`, `partners` or `collection_requests`.
-4. Proposed-but-not-applied items from the docs: `waste_listings.is_hidden` and a
+| File | What it does | Live project |
+|---|---|---|
+| `20261120000000_initial_schema.sql` | Export of the dashboard-built schema | Already there (marked applied with `migration repair`) |
+| `20261120120000_request_workflow_fixes.sql` | `transition_request()` status function, initial-status history trigger, tighter request INSERT policy, `updated_at` triggers | Pending review, then `npx supabase db push` |
+
+### Request status rules (`transition_request`)
+
+| From | To | Who |
+|---|---|---|
+| pending | accepted | listing owner (listing becomes `reserved`) |
+| pending | rejected | listing owner |
+| pending | cancelled | requesting partner |
+| accepted | scheduled | either side (collection date required) |
+| accepted / scheduled | cancelled | either side (listing back to `active`) |
+| scheduled | collected | either side |
+| collected | completed | listing owner (listing becomes `completed`) |
+
+Admins may perform any of these. `rejected`, `cancelled` and `completed` are final.
+The SRS says these rules still need team sign-off - change them in a new migration if needed.
+
+Backend usage (with the user's JWT, so `auth.uid()` is the caller):
+`supabase.rpc("transition_request", {"p_request_id": ..., "p_new_status": "accepted", "p_remarks": ..., "p_collection_date": ...})`.
+Error codes: `28000` -> 401, `P0002` -> 404, `42501` -> 403, `22023` -> 409.
+
+## Working with the CLI
+
+```bash
+npx supabase link --project-ref <project-ref>   # once per checkout
+npx supabase migration list --remote            # compare local vs live
+npx supabase migration new <name>               # create a new migration file
+npx supabase db push --dry-run --remote         # preview
+npx supabase db push --remote                   # apply to the live project
+```
+
+## Remaining gaps
+
+1. Proposed-but-not-applied items from the docs: `waste_listings.is_hidden` and a
    partner-registration function.
-5. `match_results`, `recommendations`, `recommendation_sources` and `request_status_history`
+2. `match_results`, `recommendations`, `recommendation_sources` and `request_status_history`
    have only SELECT policies, so they must be written by the backend with the service-role key
-   (by design).
+   (or a security-definer function) - by design.
+3. One partner can have several open requests on the same listing; accepting one does not
+   auto-reject the others (the listing just becomes `reserved`).
