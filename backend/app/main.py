@@ -1,0 +1,39 @@
+"""Waste2Wealth API entry point.
+
+Run locally (from the backend/ folder):
+    uvicorn app.main:app --reload
+Docs: http://127.0.0.1:8000/docs
+"""
+
+import logging
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.api.routes import health, profiles
+from app.core.config import get_settings
+from app.core.exceptions import register_exception_handlers
+
+
+def create_app() -> FastAPI:
+    settings = get_settings()
+    logging.basicConfig(level=logging.INFO)
+
+    app = FastAPI(title=settings.app_name, version="0.1.0")
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origin_list,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["Authorization", "Content-Type"],
+    )
+    register_exception_handlers(app)
+
+    app.include_router(health.router)  # /health (no prefix, for load balancers)
+    app.include_router(health.router, prefix=settings.api_prefix)
+    app.include_router(profiles.router, prefix=settings.api_prefix)
+    return app
+
+
+app = create_app()
