@@ -6,9 +6,10 @@ Docs: http://127.0.0.1:8000/docs
 """
 
 import logging
+import time
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import health, listings, profiles
@@ -35,8 +36,21 @@ def create_app() -> FastAPI:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["Authorization", "Content-Type"],
+        expose_headers=["X-Response-Time"],
     )
     register_exception_handlers(app)
+
+    timing_log = logging.getLogger("app.timing")
+
+    @app.middleware("http")
+    async def add_response_time(request: Request, call_next):
+        start = time.perf_counter()
+        response = await call_next(request)
+        ms = (time.perf_counter() - start) * 1000
+        response.headers["X-Response-Time"] = f"{ms:.0f}ms"
+        if request.method != "OPTIONS":
+            timing_log.info("%s %s -> %s in %.0f ms", request.method, request.url.path, response.status_code, ms)
+        return response
 
     app.include_router(health.router)  # /health (no prefix, for load balancers)
     app.include_router(health.router, prefix=settings.api_prefix)

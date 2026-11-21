@@ -27,11 +27,9 @@ def browse_listings(service: Service, filters: Filters) -> ApiResponse[Page[List
 
 
 @router.get("/mine", response_model=ApiResponse[Page[ListingOut]])
-def my_listings(
-    service: Service,
-    filters: Filters,
-    _: ProfileOut = Depends(require_roles("generator")),
-) -> ApiResponse[Page[ListingOut]]:
+def my_listings(service: Service, filters: Filters) -> ApiResponse[Page[ListingOut]]:
+    """The caller's own listings in any status. No role lookup needed: the query is
+    filtered to owner_id = caller (and RLS), so other account types just get an empty list."""
     return ok(service.search(filters, mine=True))
 
 

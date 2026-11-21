@@ -26,9 +26,13 @@ def _shared_http() -> httpx.Client:
     # No default headers here on purpose: auth must never live on the shared client.
     return httpx.Client(
         timeout=httpx.Timeout(15.0, connect=10.0),
-        limits=httpx.Limits(max_connections=50, max_keepalive_connections=20, keepalive_expiry=60),
+        # Keep idle connections for 5 min: the project is in Sydney, so a new TLS
+        # handshake costs ~1 s for users in India.
+        limits=httpx.Limits(max_connections=50, max_keepalive_connections=20, keepalive_expiry=300),
         follow_redirects=True,
-        http2=True,
+        # HTTP/1.1 pool: concurrent requests from FastAPI's worker threads each get
+        # their own connection instead of queueing on a single HTTP/2 connection.
+        http2=False,
     )
 
 
