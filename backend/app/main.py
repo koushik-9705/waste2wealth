@@ -33,6 +33,8 @@ def create_app() -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origin_list,
+        # In development accept the web app on any local port (Vite moves to 5174+ if 5173 is busy).
+        allow_origin_regex=r"^http://(localhost|127\.0\.0\.1)(:\d+)?$" if settings.environment == "development" else None,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["Authorization", "Content-Type"],

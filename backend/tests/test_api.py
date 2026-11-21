@@ -44,6 +44,21 @@ def test_health(client):
         assert res.json()["data"]["status"] == "ok"
 
 
+def test_cors_allows_any_local_dev_port(client):
+    for origin in ("http://localhost:5173", "http://localhost:5174", "http://127.0.0.1:3000"):
+        res = client.options("/api/v1/listings", headers={
+            "Origin": origin, "Access-Control-Request-Method": "GET",
+            "Access-Control-Request-Headers": "authorization"})
+        assert res.status_code == 200, origin
+        assert res.headers["access-control-allow-origin"] == origin
+
+
+def test_cors_rejects_other_sites(client):
+    res = client.options("/api/v1/listings", headers={
+        "Origin": "https://evil.example.com", "Access-Control-Request-Method": "GET"})
+    assert "access-control-allow-origin" not in res.headers
+
+
 def test_profile_requires_token(client):
     res = client.get("/api/v1/profiles/me")
     assert res.status_code == 401
