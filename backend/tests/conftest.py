@@ -21,4 +21,5 @@ def app():
 
 @pytest.fixture
 def client(app):
-    return TestClient(app)
+    # Return real 500 responses (our error envelope) instead of re-raising.
+    return TestClient(app, raise_server_exceptions=False)

@@ -15,8 +15,11 @@ from postgrest import SyncPostgrestClient
 from app.core.exceptions import ForbiddenError, UnauthorizedError
 from app.core.security import verify_access_token
 from app.integrations.supabase.client import user_db
+from app.integrations.supabase.storage import SupabaseImageStorage
+from app.repositories.listing_repository import ListingRepository
 from app.repositories.profile_repository import ProfileRepository
 from app.schemas.profile import ProfileOut
+from app.services.listing_service import ListingService
 from app.services.profile_service import ProfileService
 
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -47,6 +50,13 @@ def get_profile_service(db: SyncPostgrestClient = Depends(get_user_db)) -> Profi
     return ProfileService(ProfileRepository(db))
 
 
+def get_listing_service(
+    user: CurrentUser = Depends(get_current_user),
+    db: SyncPostgrestClient = Depends(get_user_db),
+) -> ListingService:
+    return ListingService(ListingRepository(db), SupabaseImageStorage(user.access_token), user.id)
+
+
 def get_current_profile(
     user: CurrentUser = Depends(get_current_user),
     service: ProfileService = Depends(get_profile_service),
@@ -74,9 +84,9 @@ def require_roles(*roles: str) -> Callable[..., ProfileOut]:
 
 __all__ = [
     "CurrentUser",
-    "UnauthorizedError",
     "get_current_profile",
     "get_current_user",
+    "get_listing_service",
     "get_profile_service",
     "get_user_db",
     "require_roles",

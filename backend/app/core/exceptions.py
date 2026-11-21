@@ -53,6 +53,7 @@ _PG_ERROR_MAP: dict[str, tuple[int, str]] = {
     "23505": (409, "CONFLICT"),  # unique violation
     "23503": (409, "CONFLICT"),  # foreign key violation
     "23514": (422, "VALIDATION_ERROR"),  # check constraint
+    "22P02": (422, "VALIDATION_ERROR"),  # invalid input syntax (e.g. bad uuid)
     "P0001": (400, "BAD_REQUEST"),  # RAISE EXCEPTION from triggers
 }
 
