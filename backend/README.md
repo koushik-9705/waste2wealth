@@ -50,3 +50,16 @@ app/
 | GET | `/health`, `/api/v1/health` | none |
 | GET | `/api/v1/profiles/me` | signed-in user |
 | PATCH | `/api/v1/profiles/me` | signed-in user (cannot change `account_type`) |
+| GET | `/api/v1/listings` | signed-in user - active listings + own (RLS). Filters: `category`, `material`, `location`, `status`, `min_quantity`, `max_quantity`, `sort_by` (`newest`, `oldest`, `quantity_asc/desc`, `price_asc/desc`), `page`, `page_size` (max 100) |
+| GET | `/api/v1/listings/mine` | generator / both - own listings, any status |
+| POST | `/api/v1/listings` | generator / both |
+| GET | `/api/v1/listings/{id}` | anyone who can see it (otherwise 404) |
+| PATCH | `/api/v1/listings/{id}` | owner / admin - only `active` listings; `status` may be set to `cancelled` or back to `active` |
+| DELETE | `/api/v1/listings/{id}` | owner / admin - 409 if it has collection requests (cancel instead) |
+| POST | `/api/v1/listings/{id}/images` | owner - multipart `files`, max 5 images, JPEG/PNG/WebP (checked by content), 5 MB each |
+| DELETE | `/api/v1/listings/{id}/images?path=...` | owner |
+
+Listing responses include `images: [{path, url}]`, where `url` is a signed link
+valid for 1 hour (the bucket is private). `is_owner` tells the client whether
+to show edit controls. Lists are returned as
+`{items, page, page_size, total, total_pages}`.

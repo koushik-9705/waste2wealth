@@ -10,7 +10,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import health, profiles
+from app.api.routes import health, listings, profiles
 from app.core.config import get_settings
 from app.core.exceptions import register_exception_handlers
 
@@ -33,6 +33,7 @@ def create_app() -> FastAPI:
     app.include_router(health.router)  # /health (no prefix, for load balancers)
     app.include_router(health.router, prefix=settings.api_prefix)
     app.include_router(profiles.router, prefix=settings.api_prefix)
+    app.include_router(listings.router, prefix=settings.api_prefix)
     return app
 
 
