@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
-import { supabase } from "../lib/supabase";
+import { friendlyAuthError, supabase } from "../lib/supabase";
 import { useAuth } from "../auth/AuthProvider";
 import { Alert } from "../components/ui";
 
@@ -19,13 +19,13 @@ export function LoginPage() {
     e.preventDefault();
     setBusy(true);
     setError(null);
-    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-    setBusy(false);
-    if (error) {
-      setError(error.message === "Email not confirmed"
-        ? "Please confirm your email first - check your inbox for the link."
-        : error.message);
-      return;
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+      if (error) return setError(friendlyAuthError(error.message));
+    } catch (err) {
+      return setError(friendlyAuthError(err instanceof Error ? err.message : String(err)));
+    } finally {
+      setBusy(false);
     }
     navigate(from, { replace: true });
   };

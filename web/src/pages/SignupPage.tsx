@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link, Navigate } from "react-router-dom";
-import { supabase } from "../lib/supabase";
+import { friendlyAuthError, supabase } from "../lib/supabase";
 import { useAuth } from "../auth/AuthProvider";
 import { Alert } from "../components/ui";
 
@@ -20,14 +20,19 @@ export function SignupPage() {
     setBusy(true);
     setError(null);
     // full_name is read by the handle_new_user trigger to create the profile.
-    const { data, error } = await supabase.auth.signUp({
-      email: email.trim(),
-      password,
-      options: { data: { full_name: fullName.trim() }, emailRedirectTo: `${window.location.origin}/login` },
-    });
-    setBusy(false);
-    if (error) return setError(error.message);
-    if (!data.session) setCheckEmail(true); // email confirmation is enabled
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: { data: { full_name: fullName.trim() }, emailRedirectTo: `${window.location.origin}/login` },
+      });
+      if (error) return setError(friendlyAuthError(error.message));
+      if (!data.session) setCheckEmail(true); // email confirmation is enabled
+    } catch (err) {
+      setError(friendlyAuthError(err instanceof Error ? err.message : String(err)));
+    } finally {
+      setBusy(false);
+    }
   };
 
   if (checkEmail) {

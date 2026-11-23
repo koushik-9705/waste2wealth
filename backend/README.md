@@ -51,7 +51,7 @@ app/
 | GET | `/api/v1/profiles/me` | signed-in user |
 | PATCH | `/api/v1/profiles/me` | signed-in user (cannot change `account_type`) |
 | GET | `/api/v1/listings` | signed-in user - active listings + own (RLS). Filters: `category`, `material`, `location`, `status`, `min_quantity`, `max_quantity`, `sort_by` (`newest`, `oldest`, `quantity_asc/desc`, `price_asc/desc`), `page`, `page_size` (max 100) |
-| GET | `/api/v1/listings/mine` | generator / both - own listings, any status |
+| GET | `/api/v1/listings/mine` | signed-in user - own listings, any status |
 | POST | `/api/v1/listings` | generator / both |
 | GET | `/api/v1/listings/{id}` | anyone who can see it (otherwise 404) |
 | PATCH | `/api/v1/listings/{id}` | owner / admin - only `active` listings; `status` may be set to `cancelled` or back to `active` |

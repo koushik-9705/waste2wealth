@@ -30,7 +30,12 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   try {
     res = await fetch(`${BASE_URL}${path}`, { ...init, headers });
   } catch {
-    throw new ApiError("Cannot reach the server. Is the backend running?", 0, "NETWORK_ERROR");
+    throw new ApiError(
+      `Cannot reach the backend at ${BASE_URL}. Start it (uvicorn app.main:app --port 8000 in backend/) ` +
+        `and check VITE_API_BASE_URL in web/.env.local.`,
+      0,
+      "NETWORK_ERROR",
+    );
   }
 
   const body = await res.json().catch(() => null);
