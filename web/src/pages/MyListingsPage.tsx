@@ -4,6 +4,8 @@ import { api } from "../lib/api";
 import type { Listing, ListingStatus, Page } from "../lib/types";
 import { ListingCard } from "../components/ListingCard";
 import { EmptyState, ErrorMessage, Pagination } from "../components/ui";
+import { PageHeader } from "../components/widgets";
+import { Icon } from "../components/Icon";
 
 const TABS: { value: ListingStatus | ""; label: string }[] = [
   { value: "", label: "All" },
@@ -30,15 +32,10 @@ export function MyListingsPage() {
 
   return (
     <>
-      <div className="page-head page-head-row">
-        <div>
-          <h1>My listings</h1>
-          <p className="muted">Everything you have listed, in any status.</p>
-        </div>
-        <Link to="/listings/new" className="btn btn-primary">+ New listing</Link>
-      </div>
+      <PageHeader title="My Listings" subtitle="Everything you have listed, in any status."
+        action={<Link to="/listings/new" className="btn btn-primary"><Icon name="plus" size={17} /> New listing</Link>} />
 
-      <div className="tabs" role="tablist">
+      <div className="seg-tabs" role="tablist">
         {TABS.map((t) => (
           <button key={t.value} role="tab" aria-selected={status === t.value} className={status === t.value ? "active" : ""}
             onClick={() => setParams(t.value ? { status: t.value } : {})}>
@@ -49,7 +46,7 @@ export function MyListingsPage() {
 
       <ErrorMessage error={error} />
       {!data ? (
-        !error && <div className="page-center muted">Loading…</div>
+        !error && <div className="grid">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="skeleton-card" />)}</div>
       ) : data.items.length === 0 ? (
         <EmptyState title={status ? `No ${status} listings` : "You haven't listed anything yet"}>
           <Link to="/listings/new" className="btn btn-primary">Create your first listing</Link>

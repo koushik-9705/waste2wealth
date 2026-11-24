@@ -4,6 +4,7 @@
  */
 import { supabase } from "./supabase";
 import type { Listing, ListingFilters, ListingInput, Page, Profile } from "./types";
+import { isPreview, previewApi } from "./preview";
 
 const BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://127.0.0.1:8000/api/v1";
 
@@ -30,7 +31,12 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   try {
     res = await fetch(`${BASE_URL}${path}`, { ...init, headers });
   } catch {
-    throw new ApiError("Cannot reach the server. Is the backend running?", 0, "NETWORK_ERROR");
+    throw new ApiError(
+      `Cannot reach the backend at ${BASE_URL}. Start it (uvicorn app.main:app --port 8000 in backend/) ` +
+        `and check VITE_API_BASE_URL in web/.env.local.`,
+      0,
+      "NETWORK_ERROR",
+    );
   }
 
   const body = await res.json().catch(() => null);
@@ -54,7 +60,7 @@ function query(params: Record<string, string | number | undefined | null>): stri
   return s ? `?${s}` : "";
 }
 
-export const api = {
+const realApi = {
   getMyProfile: () => request<Profile>("/profiles/me"),
   updateMyProfile: (changes: Partial<Profile>) =>
     request<Profile>("/profiles/me", { method: "PATCH", body: JSON.stringify(changes) }),
@@ -75,3 +81,6 @@ export const api = {
   removeImage: (id: string, path: string) =>
     request<Listing>(`/listings/${id}/images${query({ path })}`, { method: "DELETE" }),
 };
+
+/** In UI preview mode (dev only) every call returns demo data instead of hitting the backend. */
+export const api: typeof realApi = isPreview ? previewApi : realApi;

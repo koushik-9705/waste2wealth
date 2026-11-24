@@ -19,3 +19,11 @@ export const statusLabel: Record<ListingStatus, string> = {
   completed: "Completed",
   cancelled: "Cancelled",
 };
+
+/** "₹12/kg" when both price and quantity are known, otherwise null. */
+export const pricePerUnit = (l: { expected_price: string | null; quantity: string; unit: string }) => {
+  if (l.expected_price === null) return null;
+  const q = Number(l.quantity);
+  if (!q) return null;
+  return `${inr.format(Math.round(Number(l.expected_price) / q))}/${l.unit}`;
+};

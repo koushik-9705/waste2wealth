@@ -4,6 +4,7 @@ import { api } from "../lib/api";
 import type { Listing, ListingInput } from "../lib/types";
 import { ListingForm } from "../components/ListingForm";
 import { Alert, ErrorMessage } from "../components/ui";
+import { PageHeader } from "../components/widgets";
 
 export function EditListingPage() {
   const { id } = useParams<{ id: string }>();
@@ -38,7 +39,7 @@ export function EditListingPage() {
 
   return (
     <div className="narrow">
-      <h1>Edit listing</h1>
+      <PageHeader title="Edit listing" subtitle={listing.material_name} />
       <ErrorMessage error={error} />
       <div className="card">
         <ListingForm initial={listing} lockCategory submitLabel="Save changes" busy={busy} onSubmit={submit} />

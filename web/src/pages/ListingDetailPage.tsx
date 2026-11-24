@@ -1,21 +1,26 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { api } from "../lib/api";
 import type { Listing } from "../lib/types";
-import { categoryLabel, formatDate, formatPrice, formatQuantity } from "../lib/format";
+import { categoryLabel, formatDate, formatPrice, formatQuantity, pricePerUnit } from "../lib/format";
 import { ImagePicker, MAX_IMAGES } from "../components/ImagePicker";
 import { Alert, ErrorMessage, StatusBadge } from "../components/ui";
+import { Icon } from "../components/Icon";
+import { DemoBadge, MaterialArt } from "../components/widgets";
+import { matches, partners } from "../lib/demo";
 
 export function ListingDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const [search] = useSearchParams();
   const navigate = useNavigate();
   const [listing, setListing] = useState<Listing | null>(null);
   const [error, setError] = useState<unknown>(null);
   const [actionError, setActionError] = useState<unknown>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(search.get("created") ? "Listing Created Successfully! Your listing is now live and visible to verified buyers." : null);
   const [busy, setBusy] = useState(false);
   const [newFiles, setNewFiles] = useState<File[]>([]);
   const [active, setActive] = useState(0);
+  const [requested, setRequested] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -42,16 +47,20 @@ export function ListingDetailPage() {
 
   const images = listing.images.filter((i) => i.url);
   const owner = listing.is_owner;
+  const perUnit = pricePerUnit(listing);
 
   return (
     <div className="detail">
-      <Link to={owner ? "/my-listings" : "/listings"} className="muted small">← Back</Link>
+      <Link to={owner ? "/my-listings" : "/listings"} className="back-link"><Icon name="arrowLeft" size={16} /> Back to {owner ? "my listings" : "listings"}</Link>
+
+      {notice && <Alert kind="success">{notice}</Alert>}
+      <ErrorMessage error={actionError} />
 
       <div className="detail-grid">
         <div>
-          <div className={`gallery ${images.length ? "" : `placeholder placeholder-${listing.waste_category}`}`}>
+          <div className="gallery card">
             {images.length ? <img src={images[Math.min(active, images.length - 1)].url!} alt={listing.material_name} />
-              : <span>{categoryLabel[listing.waste_category]}</span>}
+              : <MaterialArt material={listing.material_name} category={listing.waste_category} />}
           </div>
           {(images.length > 1 || (owner && images.length > 0)) && (
             <div className="thumbs">
@@ -68,23 +77,21 @@ export function ListingDetailPage() {
           )}
         </div>
 
-        <div>
+        <div className="detail-info">
           <div className="card-row">
-            <span className={`chip chip-${listing.waste_category}`}>{categoryLabel[listing.waste_category]}</span>
+            <span className={`lc-tag lc-tag-${listing.waste_category} static`}>{categoryLabel[listing.waste_category]}</span>
             <StatusBadge status={listing.status} />
           </div>
           <h1>{listing.material_name}</h1>
-          <p className="price">{formatPrice(listing.expected_price)}</p>
-          <dl className="facts">
+          <p className="price">{perUnit ?? formatPrice(listing.expected_price)}
+            {perUnit && <span className="muted small"> · {formatPrice(listing.expected_price)} total</span>}</p>
+          <dl className="facts card">
             <dt>Quantity</dt><dd>{formatQuantity(listing.quantity, listing.unit)}</dd>
             <dt>Condition</dt><dd>{listing.material_condition}</dd>
             <dt>Location</dt><dd>{listing.location}</dd>
             <dt>Listed</dt><dd>{formatDate(listing.created_at)}</dd>
           </dl>
           {listing.description && <p className="description">{listing.description}</p>}
-
-          {notice && <Alert kind="success">{notice}</Alert>}
-          <ErrorMessage error={actionError} />
 
           {owner ? (
             <div className="owner-panel card">
@@ -101,15 +108,15 @@ export function ListingDetailPage() {
                 </>
               )}
               <div className="actions">
-                {listing.status === "active" && <Link className="btn btn-ghost btn-sm" to={`/listings/${listing.listing_id}/edit`}>Edit details</Link>}
+                {listing.status === "active" && <Link className="btn btn-outline btn-sm" to={`/listings/${listing.listing_id}/edit`}>Edit details</Link>}
                 {listing.status === "active" && (
-                  <button className="btn btn-ghost btn-sm" disabled={busy}
+                  <button className="btn btn-outline btn-sm" disabled={busy}
                     onClick={() => run(() => api.updateListing(listing.listing_id, { status: "cancelled" }), "Listing cancelled - it's hidden from others.")}>
                     Cancel listing
                   </button>
                 )}
                 {listing.status === "cancelled" && (
-                  <button className="btn btn-ghost btn-sm" disabled={busy}
+                  <button className="btn btn-outline btn-sm" disabled={busy}
                     onClick={() => run(() => api.updateListing(listing.listing_id, { status: "active" }), "Listing is active again.")}>
                     Reopen listing
                   </button>
@@ -129,12 +136,40 @@ export function ListingDetailPage() {
               )}
             </div>
           ) : (
-            <div className="card owner-panel">
-              <p className="muted small">Collection requests from verified partners are coming soon.</p>
+            <div className="card request-box">
+              <h3>Interested in this material? <DemoBadge /></h3>
+              {requested ? (
+                <Alert kind="success">Pickup request sent. The seller will confirm a collection time. (Demo - requests are not saved yet.)</Alert>
+              ) : (
+                <>
+                  <p className="muted small">Send a collection request to the seller with your preferred pickup date.</p>
+                  <button className="btn btn-primary btn-block" onClick={() => setRequested(true)}><Icon name="truck" size={17} /> Request Pickup</button>
+                </>
+              )}
             </div>
           )}
         </div>
       </div>
+
+      {owner && listing.status === "active" && (
+        <section className="card panel">
+          <div className="panel-head">
+            <h2><Icon name="sparkles" size={18} /> AI matches for this listing <DemoBadge /></h2>
+            <Link to="/matches" className="link-more">View details <Icon name="arrowRight" size={15} /></Link>
+          </div>
+          <div className="match-mini">
+            {matches.slice(0, 2).map((m) => {
+              const p = partners.find((x) => x.id === m.partnerId)!;
+              return (
+                <Link key={m.partnerId} to={`/partners/${p.id}`} className="match-mini-item">
+                  <span className="score-ring sm" style={{ ["--p" as string]: m.score }}><span>{m.score}%</span></span>
+                  <span><strong>{p.name}</strong><span className="muted small">{m.reason}</span></span>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
