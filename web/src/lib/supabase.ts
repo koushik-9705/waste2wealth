@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { isPreview } from "./preview";
 
 const url = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim();
 const anonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)?.trim();
@@ -19,7 +20,7 @@ function checkConfig(): string | null {
   return null;
 }
 
-export const configError = checkConfig();
+export const configError = isPreview ? null : checkConfig();
 
 // Supabase handles sign-up, sign-in and token refresh. All app data goes through our API.
 export const supabase = createClient(url || "http://localhost", anonKey || "missing", {

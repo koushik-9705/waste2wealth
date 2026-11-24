@@ -3,11 +3,12 @@ import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { friendlyAuthError, supabase } from "../lib/supabase";
 import { useAuth } from "../auth/AuthProvider";
 import { Alert } from "../components/ui";
+import { AuthAside } from "./SignupPage";
 
 export function LoginPage() {
   const { session } = useAuth();
   const navigate = useNavigate();
-  const from = (useLocation().state as { from?: string } | null)?.from ?? "/listings";
+  const from = (useLocation().state as { from?: string } | null)?.from ?? "/dashboard";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -31,22 +32,28 @@ export function LoginPage() {
   };
 
   return (
-    <div className="auth-card card">
-      <h1>Sign in</h1>
-      {error && <Alert>{error}</Alert>}
-      <form className="form" onSubmit={submit}>
-        <label className="field">
-          <span>Email</span>
-          <input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-        </label>
-        <label className="field">
-          <span>Password</span>
-          <input type="password" autoComplete="current-password" required value={password}
-            onChange={(e) => setPassword(e.target.value)} />
-        </label>
-        <button className="btn btn-primary" disabled={busy}>{busy ? "Signing in…" : "Sign in"}</button>
-      </form>
-      <p className="muted small">No account yet? <Link to="/signup">Create one</Link></p>
+    <div className="auth-wrap">
+      <div className="auth-split card">
+        <AuthAside title="Welcome back!" text="Sign in to manage your listings, requests and matches." />
+        <div className="auth-form">
+          <h1>Sign in</h1>
+          <p className="muted">Use the email and password you registered with.</p>
+          {error && <Alert>{error}</Alert>}
+          <form className="form" onSubmit={submit}>
+            <label className="field">
+              <span>Email</span>
+              <input type="email" autoComplete="email" required placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+            </label>
+            <label className="field">
+              <span>Password</span>
+              <input type="password" autoComplete="current-password" required placeholder="Your password" value={password}
+                onChange={(e) => setPassword(e.target.value)} />
+            </label>
+            <button className="btn btn-primary btn-block" disabled={busy}>{busy ? "Signing in…" : "Sign in"}</button>
+          </form>
+          <p className="muted small center">No account yet? <Link to="/signup">Create one</Link></p>
+        </div>
+      </div>
     </div>
   );
 }

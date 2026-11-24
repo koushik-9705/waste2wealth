@@ -3,6 +3,7 @@ import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
 import { api } from "../lib/api";
 import type { Profile } from "../lib/types";
+import { isPreview, previewProfile } from "../lib/preview";
 
 interface AuthState {
   session: Session | null;
@@ -39,6 +40,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    if (isPreview) {
+      // Dev-only preview: pretend a demo user is signed in.
+      setSession({ user: { id: previewProfile.user_id, email: "keerthi@example.com" } } as unknown as Session);
+      setProfile(previewProfile);
+      setLoading(false);
+      return;
+    }
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       // Pages only need the session to render; the profile loads in the background.
